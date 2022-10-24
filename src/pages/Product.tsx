@@ -1,12 +1,15 @@
 import { Add, Remove } from "@mui/icons-material";
 import { title } from "process";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import { useLocation } from "react-router-dom";
+import Select from "react-select";
 import styled from "styled-components";
 import Announcement from "../components/Announcement";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import Newsletter from "../components/Newsletter";
+import { addProduct } from "../redux/cartRedux";
 import { publicRequest } from "../requestMethods";
 import { mobile } from "../responsive";
 
@@ -123,45 +126,61 @@ const Button = styled.button`
   cursor: pointer;
   font-weight: 500;
 
-  &:hover{
-      background-color: #f8f4f4;
+  &:hover {
+    background-color: #f8f4f4;
   }
 `;
 
 const Product = () => {
+  const dispatch = useDispatch();
 
   const location = useLocation();
   const id = location.pathname.split("/")[2];
+
+  const [totalSize, setTotalSize] = useState<any>([]);
+  console.log("totalSize...", totalSize);
 
   const [product, setProduct] = useState<Props>();
   const [quantity, setQuantity] = useState(1);
   const [color, setColor] = useState("");
   const [size, setSize] = useState("");
+  console.log("size...", size);
 
   useEffect(() => {
     const getProduct = async () => {
       try {
-        const res = await publicRequest.get('/products/find/' + id);
+        const res = await publicRequest.get("/products/find/" + id);
         const productData = res.data;
         setProduct(productData);
+        const sizeDetail = productData?.size?.map((item: any) => {
+          return {
+            label: item,
+            value: item,
+          };
+        });
+        setTotalSize(sizeDetail);
       } catch (error) {
         console.log(error);
       }
-    }
+    };
     getProduct();
   }, [id]);
 
   const handleQuantity = (type: any) => {
     if (type === "dec") {
-      quantity > 0 && setQuantity(quantity - 1);
+      quantity > 1 && setQuantity(quantity - 1);
     } else {
       setQuantity(quantity + 1);
     }
   };
 
-  const handleClick = () => {
+  const handleChangeSize = (e: any) => {
+    setSize(e);
+  };
 
-  }
+  const handleClick = () => {
+    dispatch(addProduct({ ...product, quantity, color, size }));
+  };
 
   return (
     <Container>
@@ -169,30 +188,43 @@ const Product = () => {
       <Announcement />
       <Wrapper>
         <ImgContainer>
-          <Image
-            src={product?.img}
-          />
+          <Image src={product?.img} />
         </ImgContainer>
         <InfoContainer>
           <Title>{product?.title}</Title>
-          <Desc>
-            {product?.desc}
-          </Desc>
+          <Desc>{product?.desc}</Desc>
           <Price>$ {product?.price}</Price>
           <FilterContainer>
             <Filter>
               <FilterTitle>Color</FilterTitle>
               {product?.color?.map((color: any) => (
-                <FilterColor color={color} key={color} />
+                <FilterColor
+                  color={color}
+                  key={color}
+                  onClick={() => setColor(color)}
+                />
               ))}
             </Filter>
             <Filter>
-              <FilterTitle>Size</FilterTitle>
-              <FilterSize>
+              <FilterTitle style={{ marginRight: "12px" }}>Size</FilterTitle>
+              {/* <FilterSize onChange={handleChangeSize}>
+                <FilterSizeOption disabled>Size</FilterSizeOption>
                 {product?.size?.map((size: any) => (
                   <FilterSizeOption key={size}>{size}</FilterSizeOption>
                 ))}
-              </FilterSize>
+              </FilterSize> */}
+              <div style={{ width: "200px" }}>
+                <Select
+                  id="size"
+                  name="size"
+                  placeholder="Enter select size"
+                  value={size}
+                  onChange={handleChangeSize}
+                  options={totalSize}
+                  noOptionsMessage={() => "No more options"}
+                  isClearable
+                />
+              </div>
             </Filter>
           </FilterContainer>
           <AddContainer>

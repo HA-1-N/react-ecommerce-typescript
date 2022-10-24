@@ -1,13 +1,20 @@
 import { Add, Remove } from "@mui/icons-material";
-import styled from "styled-components";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import StripeCheckout from "react-stripe-checkout";
+import styled, { StyledComponent } from "styled-components";
 import Announcement from "../components/Announcement";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import { reset } from "../redux/cartRedux";
+// import { removeProduct } from "../redux/cartRedux";
+import { userRequest } from "../requestMethods";
 import { mobile } from "../responsive";
 
 interface Props {
-    type?: string | any | {} | Event;
-};
+  type?: string | any | {} | Event;
+}
 
 const Container = styled.div``;
 
@@ -28,13 +35,13 @@ const Top = styled.div`
   padding: 20px;
 `;
 
-const TopButton = styled.button`
+const TopButton: StyledComponent<"button", any, {}, never> = styled.button`
   padding: 10px;
   font-weight: 600;
   cursor: pointer;
   border: ${(props: Props) => props.type === "filled" && "none"};
   background-color: ${(props: Props) =>
-        props.type === "filled" ? "black" : "transparent"};
+    props.type === "filled" ? "black" : "transparent"};
   color: ${(props: Props) => props.type === "filled" && "white"};
 `;
 
@@ -51,7 +58,6 @@ const Bottom = styled.div`
   display: flex;
   justify-content: space-between;
   ${mobile({ flexDirection: "column" })}
-
 `;
 
 const Info = styled.div`
@@ -62,6 +68,7 @@ const Product = styled.div`
   display: flex;
   justify-content: space-between;
   ${mobile({ flexDirection: "column" })}
+  margin: 12px 0;
 `;
 
 const ProductDetail = styled.div`
@@ -158,103 +165,139 @@ const Button = styled.button`
 `;
 
 const Cart = () => {
-    return (
-        <Container>
-            <Navbar />
-            <Announcement />
-            <Wrapper>
-                <Title>YOUR BAG</Title>
-                <Top>
-                    <TopButton>CONTINUE SHOPPING</TopButton>
-                    <TopTexts>
-                        <TopText>Shopping Bag(2)</TopText>
-                        <TopText>Your Wishlist (0)</TopText>
-                    </TopTexts>
-                    <TopButton
-                    // type="filled"
-                    >
-                        CHECKOUT NOW
-                    </TopButton>
-                </Top>
-                <Bottom>
-                    <Info>
-                        <Product>
-                            <ProductDetail>
-                                <Image src="https://hips.hearstapps.com/vader-prod.s3.amazonaws.com/1614188818-TD1MTHU_SHOE_ANGLE_GLOBAL_MENS_TREE_DASHERS_THUNDER_b01b1013-cd8d-48e7-bed9-52db26515dc4.png?crop=1xw:1.00xh;center,top&resize=480%3A%2A" />
-                                <Details>
-                                    <ProductName>
-                                        <b>Product:</b> JESSIE THUNDER SHOES
-                                    </ProductName>
-                                    <ProductId>
-                                        <b>ID:</b> 93813718293
-                                    </ProductId>
-                                    <ProductColor color="black" />
-                                    <ProductSize>
-                                        <b>Size:</b> 37.5
-                                    </ProductSize>
-                                </Details>
-                            </ProductDetail>
-                            <PriceDetail>
-                                <ProductAmountContainer>
-                                    <Add />
-                                    <ProductAmount>2</ProductAmount>
-                                    <Remove />
-                                </ProductAmountContainer>
-                                <ProductPrice>$ 30</ProductPrice>
-                            </PriceDetail>
-                        </Product>
-                        <Hr />
-                        <Product>
-                            <ProductDetail>
-                                <Image src="https://i.pinimg.com/originals/2d/af/f8/2daff8e0823e51dd752704a47d5b795c.png" />
-                                <Details>
-                                    <ProductName>
-                                        <b>Product:</b> HAKURA T-SHIRT
-                                    </ProductName>
-                                    <ProductId>
-                                        <b>ID:</b> 93813718293
-                                    </ProductId>
-                                    <ProductColor color="gray" />
-                                    <ProductSize>
-                                        <b>Size:</b> M
-                                    </ProductSize>
-                                </Details>
-                            </ProductDetail>
-                            <PriceDetail>
-                                <ProductAmountContainer>
-                                    <Add />
-                                    <ProductAmount>1</ProductAmount>
-                                    <Remove />
-                                </ProductAmountContainer>
-                                <ProductPrice>$ 20</ProductPrice>
-                            </PriceDetail>
-                        </Product>
-                    </Info>
-                    <Summary>
-                        <SummaryTitle>ORDER SUMMARY</SummaryTitle>
-                        <SummaryItem>
-                            <SummaryItemText>Subtotal</SummaryItemText>
-                            <SummaryItemPrice>$ 80</SummaryItemPrice>
-                        </SummaryItem>
-                        <SummaryItem>
-                            <SummaryItemText>Estimated Shipping</SummaryItemText>
-                            <SummaryItemPrice>$ 5.90</SummaryItemPrice>
-                        </SummaryItem>
-                        <SummaryItem>
-                            <SummaryItemText>Shipping Discount</SummaryItemText>
-                            <SummaryItemPrice>$ -5.90</SummaryItemPrice>
-                        </SummaryItem>
-                        <SummaryItem type="total">
-                            <SummaryItemText>Total</SummaryItemText>
-                            <SummaryItemPrice>$ 80</SummaryItemPrice>
-                        </SummaryItem>
-                        <Button>CHECKOUT NOW</Button>
-                    </Summary>
-                </Bottom>
-            </Wrapper>
-            <Footer />
-        </Container>
-    );
+  const cart = useSelector((state: any) => state?.cart);
+  console.log("cart...", cart);
+
+  const [stripeToken, setStripeToken] = useState<string | any>(null);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const onToken = (token: any) => {
+    setStripeToken(token);
+  };
+
+  useEffect(() => {
+    const makeRequest = async () => {
+      try {
+        const res = await userRequest.post("/checkout/payment", {
+          tokenId: stripeToken?.id,
+          amount: cart?.total * 100,
+        });
+        navigate("/success", { state: res?.data });
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    stripeToken && makeRequest();
+  }, [stripeToken, cart.total, navigate]);
+
+  const handleClickCountinueShopping = () => {
+    navigate("/");
+  };
+
+  const handleClickRemove = () => {
+    // dispatch(removeProduct({ ...product, quantity, color, size }));
+  };
+
+  const handleClickBtnReset = () => {
+    dispatch(reset());
+  };
+
+  return (
+    <Container>
+      <Navbar />
+      <Announcement />
+      <Wrapper>
+        <Title>YOUR BAG</Title>
+        <Top>
+          <TopButton onClick={handleClickCountinueShopping}>
+            CONTINUE SHOPPING
+          </TopButton>
+          <TopTexts>
+            <TopText>Shopping Bag(2)</TopText>
+            <TopText>Your Wishlist (0)</TopText>
+          </TopTexts>
+          <TopButton type="button">CHECKOUT NOW</TopButton>
+        </Top>
+
+        <Bottom>
+          <Info>
+            {cart?.products?.map((product: any) => (
+              <Product key={product?._id}>
+                <ProductDetail>
+                  <Image src={product?.img} />
+                  <Details>
+                    <ProductName>
+                      <b>Product:</b> {product?.title}
+                    </ProductName>
+                    <ProductId>
+                      <b>ID:</b> {product?._id}
+                    </ProductId>
+                    <ProductColor color={product?.color} />
+                    <ProductSize>
+                      <b>Size:</b> {product?.size?.value}
+                    </ProductSize>
+                  </Details>
+                </ProductDetail>
+                <PriceDetail>
+                  <ProductAmountContainer>
+                    <Add />
+                    <ProductAmount>{product?.quantity}</ProductAmount>
+                    <Remove onClick={handleClickRemove} />
+                  </ProductAmountContainer>
+                  <ProductPrice>$ {product?.price}</ProductPrice>
+                </PriceDetail>
+              </Product>
+            ))}
+            <Hr />
+          </Info>
+
+          <Summary>
+            <SummaryTitle>ORDER SUMMARY</SummaryTitle>
+            <SummaryItem>
+              <SummaryItemText>Subtotal</SummaryItemText>
+              <SummaryItemPrice>$ 80</SummaryItemPrice>
+            </SummaryItem>
+            <SummaryItem>
+              <SummaryItemText>Estimated Shipping</SummaryItemText>
+              <SummaryItemPrice>$ 5.90</SummaryItemPrice>
+            </SummaryItem>
+            <SummaryItem>
+              <SummaryItemText>Shipping Discount</SummaryItemText>
+              <SummaryItemPrice>$ -5.90</SummaryItemPrice>
+            </SummaryItem>
+            <SummaryItem type="total">
+              <SummaryItemText>Total</SummaryItemText>
+              <SummaryItemPrice>$ {cart?.total}</SummaryItemPrice>
+            </SummaryItem>
+
+            <StripeCheckout
+              name="Shop Web"
+              description={`Your total is $${cart?.total}`} // the pop-in header subtitle
+              image="https://www.vidhub.co/assets/logos/vidhub-icon-2e5c629f64ced5598a56387d4e3d0c7c.png" // the pop-in header image (default none)
+              email="a@gmail.com"
+              amount={cart.total * 100}
+              shippingAddress
+              billingAddress
+              token={onToken} // submit callback
+              stripeKey="pk_test_51KwoXIGYbZCc3Aio1oiBGwDph3xTPl944TW3JuMc3bAhHtgHk5vPbfC2DOKBzwQNoxipz1Lvi92eQljkofEFvxio00tK3Wknt7"
+            >
+              <Button>CHECKOUT NOW</Button>
+            </StripeCheckout>
+
+            <div style={{ marginTop: "12px" }}>
+              <Button
+                style={{ background: "#EAEAEA", color: "#000" }}
+                onClick={handleClickBtnReset}
+              >
+                Reset Cart
+              </Button>
+            </div>
+          </Summary>
+        </Bottom>
+      </Wrapper>
+      <Footer />
+    </Container>
+  );
 };
 
 export default Cart;

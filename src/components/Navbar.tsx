@@ -1,8 +1,11 @@
-import React from 'react';
-import styled from 'styled-components';
-import { mobile } from '../responsive';
-import { Search, ShoppingCartOutlined } from '@mui/icons-material';
-import { Badge } from '@mui/material';
+import React, { useState } from "react";
+import styled from "styled-components";
+import { mobile } from "../responsive";
+import { Search, ShoppingCartOutlined } from "@mui/icons-material";
+import { Badge } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../redux/userRedux";
 
 const Container = styled.div`
   height: 60px;
@@ -67,33 +70,102 @@ const MenuItem = styled.div`
 `;
 
 const Navbar = () => {
-    return (
-        <>
-            <Container>
-                <Wrapper>
-                    <Left>
-                        <Language>EN</Language>
-                        <SearchContainer>
-                            <Input placeholder="Search" />
-                            <Search style={{ color: "gray", fontSize: 16 }} />
-                        </SearchContainer>
-                    </Left>
-                    <Center>
-                        <Logo>Shop Web</Logo>
-                    </Center>
-                    <Right>
-                        <MenuItem>REGISTER</MenuItem>
-                        <MenuItem>SIGN IN</MenuItem>
-                        <MenuItem>
-                            <Badge badgeContent={4} color="primary">
-                                <ShoppingCartOutlined />
-                            </Badge>
-                        </MenuItem>
-                    </Right>
-                </Wrapper>
-            </Container>
-        </>
-    );
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const quantity = useSelector((state: any) => state?.cart?.quantity);
+  const user = useSelector((state: any) => state?.user?.currentUser);
+
+  const [hover, setHover] = useState<any>(false);
+
+  const handleClickLogout = () => {
+    dispatch(logout());
+    navigate("/login");
+  };
+
+  const handleClickLogin = () => {
+    navigate("/login");
+  };
+
+  const handleMouseEnterImg = () => {
+    setHover(true);
+  };
+
+  const handleMouseLeaveImg = () => {
+    setHover(false);
+  };
+
+  return (
+    <>
+      <Container>
+        <Wrapper>
+          <Left>
+            <Language>EN</Language>
+            <SearchContainer>
+              <Input placeholder="Search" />
+              <Search style={{ color: "gray", fontSize: 16 }} />
+            </SearchContainer>
+          </Left>
+          <Center>
+            <Logo>Shop Web</Logo>
+          </Center>
+          <Right>
+            {!user ? (
+              <>
+                <MenuItem>REGISTER</MenuItem>
+                <MenuItem onClick={handleClickLogin}>LOGIN</MenuItem>
+              </>
+            ) : (
+              <>
+                <div>
+                  <img
+                    src="https://is4.fwrdassets.com/images/p/fw/45/BALF-WA243_V1.jpg"
+                    alt=""
+                    style={{
+                      height: "25px",
+                      width: "25px",
+                      borderRadius: "50%",
+                      cursor: "pointer",
+                      position: "relative",
+                    }}
+                    onMouseEnter={handleMouseEnterImg}
+                  />
+                  {!hover ? (
+                    <></>
+                  ) : (
+                    <MenuItem
+                      style={{
+                        position: "absolute",
+                        background: "#FFF",
+                        height: "50px",
+                        width: "100px",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        top: "80px",
+                        right: "10px",
+                        zIndex: "100",
+                      }}
+                      onClick={handleClickLogout}
+                      onMouseLeave={handleMouseLeaveImg}
+                    >
+                      LOGOUT
+                    </MenuItem>
+                  )}
+                </div>
+              </>
+            )}
+            <Link to="/cart">
+              <MenuItem>
+                <Badge badgeContent={quantity} color="primary">
+                  <ShoppingCartOutlined />
+                </Badge>
+              </MenuItem>
+            </Link>
+          </Right>
+        </Wrapper>
+      </Container>
+    </>
+  );
 };
 
 export default Navbar;
