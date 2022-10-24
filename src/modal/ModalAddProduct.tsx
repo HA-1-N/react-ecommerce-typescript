@@ -241,7 +241,7 @@ const ModalAddProduct = (props: any) => {
           // noValidate
           // autoComplete="off"
         >
-          <h3>Add Product</h3>
+          {/* <h3>Add Product</h3> */}
           <Grid
             container
             rowSpacing={2}
